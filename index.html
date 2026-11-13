@@ -29,7 +29,7 @@ button,input,select,textarea{font:inherit}button{cursor:pointer}.shell{max-width
 </section>
 <nav class="tabs"><button class="tab active" data-view="overview">Übersicht</button><button class="tab" data-view="roster">Teams & Teilnehmer</button><button class="tab" data-view="times">Zeiterfassung</button><button class="tab" data-view="results">Ergebnisse & Ehrungen</button></nav>
 <section id="overview" class="view active">
-<div class="section-head"><div><h3>Aktueller Wettbewerb</h3><div class="sub">Live-Stand aller acht Teams</div></div><button class="btn" onclick="go('results')">Gesamtrangliste ansehen →</button></div>
+<div class="section-head"><div><h3>Aktueller Wettbewerb</h3><div class="sub">Live-Stand aller acht Teams</div></div><div class="actions" style="margin:0"><button class="btn" onclick="loadDemoData()">Beispieldaten laden</button><button class="btn" onclick="go('results')">Gesamtrangliste ansehen →</button></div></div>
 <div class="team-grid" id="teamCards"></div>
 <div class="panel" style="margin-top:18px"><div class="section-head" style="margin:0 0 12px"><div><h3>So wird gewertet</h3><div class="sub">Automatisch nach jeder Zeiteneingabe</div></div><span class="badge">Top 3</span></div><div class="sub">Pro Teilnehmer werden Lauf 1 und Lauf 2 addiert. Die drei schnellsten aktiven Läufer eines Teams werden anschließend zur Teamzeit summiert. Ersatzläufer nehmen nicht an der Teamwertung oder den Einzel-Ehrungen teil.</div></div>
 </section>
@@ -87,6 +87,21 @@ function parseText(text){text=String(text||'').replace(/^\uFEFF/,'').trim();if(!
 function importPasted(){let txt=document.getElementById('pasteArea').value;if(!txt.trim())return showMsg('Bitte zuerst eine Tabelle einfügen.');importRows(parseText(txt))}
 async function readFile(file){try{let ext=file.name.split('.').pop().toLowerCase();if(ext==='json'){let d=JSON.parse(await file.text()),v=Array.isArray(d)?d:d.teams;if(!Array.isArray(v)||v.length!==8)throw new Error('Ungültige Sicherungsdatei.');teams=v;save();render();showMsg('Datenbanksicherung geladen.');return}if(ext==='xlsx'||ext==='xls'){showMsg('Excel-Datei wird eingelesen …');if(!window.XLSX){let urls=['https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'];let loaded=false;for(let url of urls){try{await new Promise((ok,no)=>{let sc=document.createElement('script');sc.src=url;sc.onload=ok;sc.onerror=()=>no(new Error('CDN nicht erreichbar'));document.head.appendChild(sc)});if(window.XLSX){loaded=true;break}}catch(e){}}if(!loaded)throw new Error('Excel-Importmodul konnte nicht geladen werden. Bitte Internetverbindung prüfen oder die Excel-Tabelle kopieren und einfügen.')}let buf=await file.arrayBuffer(),book=XLSX.read(buf,{type:'array'}),chosen=null;for(let name of book.SheetNames){let data=XLSX.utils.sheet_to_json(book.Sheets[name],{header:1,defval:''});if(data.some(row=>{let h=row.map(normalizeHeader);return h.includes('vorname')&&h.includes('nachname')})){chosen=data;break}}if(!chosen)chosen=XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]],{header:1,defval:''});importRows(chosen)}else{importRows(parseText(await file.text()))}}catch(e){showMsg((e.message||'Datei konnte nicht gelesen werden.')+' Bitte CSV nutzen oder Tabelle einfügen.')}} 
 let drop=document.getElementById('drop');['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag')}));['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag')}));drop.addEventListener('drop',e=>{let f=e.dataTransfer.files[0];if(f)readFile(f)});document.getElementById('file').addEventListener('change',e=>{if(e.target.files[0])readFile(e.target.files[0])});
+function loadDemoData(){
+ if(!confirm('Die aktuellen Teilnehmer und Zeiten werden durch realistische Testdaten ersetzt. Vorher wird automatisch eine JSON-Sicherung heruntergeladen. Fortfahren?'))return;
+ downloadBackup();
+ const boys=['Ben','Jonas','Finn','Leon','Lukas','Noah','Paul','Elias','Emil','Mats'];
+ const girls=['Mia','Emma','Lina','Hannah','Ella','Leni','Clara','Mila','Lea','Nele'];
+ const surnames=['Müller','Schneider','Fischer','Weber','Meyer','Wagner','Becker','Hoffmann','Schulz','Koch'];
+ teams=Array.from({length:8},(_,ti)=>({id:ti+1,name:'Team '+(ti+1),category:ti<4?'Jungen':'Mädchen',players:Array.from({length:10},(_,pi)=>{
+  const names=ti<4?boys:girls,first=names[(pi+ti*3)%names.length],last=surnames[(pi*3+ti)%surnames.length];
+  const active=pi<5,base=41.8+ti*0.62+pi*0.47+(pi%2)*0.13;
+  const r1=base+((ti*7+pi*3)%9)*0.11,r2=base+0.35+((ti*5+pi*2)%8)*0.12;
+  return {first,last,status:active?'Aktiv':'Ersatz',run1:r1.toFixed(2).replace('.',','),run2:r2.toFixed(2).replace('.',',')};
+ })}));
+ document.getElementById('teamFilter').innerHTML='<option value="all">Alle Teams</option>'+teams.map(t=>'<option value="'+t.id+'">'+esc(t.name)+'</option>').join('');
+ save();render();go('overview');
+}
 function resetRoster(){if(!confirm('Teilnehmernamen und Zeiten wirklich zurücksetzen?'))return;teams=Array.from({length:8},(_,i)=>({id:i+1,name:'Team '+(i+1),category:i<4?'Jungen':'Mädchen',players:Array.from({length:10},(_,j)=>({first:'',last:'',status:j<5?'Aktiv':'Ersatz',run1:'',run2:''}))}));save();render()}
 function downloadBackup(){let a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify({version:2,teams},null,2)],{type:'application/json'}));a.href=u;a.download='eisschnelllauf-datenbank-backup.json';a.click();URL.revokeObjectURL(u)}
 function downloadCSV(){let rows=[['Team','Kategorie','Startnummer','Status','Vorname','Nachname']];teams.forEach(t=>t.players.forEach((p,i)=>rows.push([t.name,t.category,i+1,p.status,p.first,p.last])));let csv='\uFEFF'+rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(';')).join('\r\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='eisschnelllauf-teilnehmer.csv';a.click();URL.revokeObjectURL(a.href)}
