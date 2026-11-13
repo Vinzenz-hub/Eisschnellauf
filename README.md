@@ -38,9 +38,14 @@ Einfach `index.html` im Browser öffnen. Für den XLSX-Import wird bei Bedarf Sh
 
 ## GitHub Pages veröffentlichen
 
-1. Im Repository **Settings → Pages** öffnen.
-2. Unter **Build and deployment** als Quelle **Deploy from a branch** auswählen.
-3. Branch **main** und Ordner **/(root)** auswählen und speichern.
-4. Nach erfolgreicher Veröffentlichung ist die Website unter `https://vinzenz-hub.github.io/Eisschnellauf/` erreichbar.
+Ein GitHub-Actions-Workflow liegt bereits unter `.github/workflows/deploy.yml` und veröffentlicht die Website bei jedem Push auf `main`.
 
-Hinweis: GitHub Pages macht die veröffentlichte Website öffentlich erreichbar. Die importierten Teilnehmerdaten werden erst im Browser gespeichert und nicht in dieses Repository hochgeladen. Das Repository ist aktuell privat; die Verfügbarkeit von Pages für private Repositories hängt vom GitHub-Tarif ab.
+1. Im Repository **Settings → Pages** öffnen.
+2. Unter **Build and deployment → Source** ausdrücklich **GitHub Actions** auswählen (nicht „Deploy from a branch“).
+3. Speichern.
+4. Unter **Actions** den Workflow **Deploy Eisschnelllauf website** öffnen und prüfen, ob der Lauf erfolgreich ist.
+5. Nach erfolgreicher Bereitstellung ist die Website unter `https://vinzenz-hub.github.io/Eisschnellauf/` erreichbar.
+
+Das Repository ist öffentlich. Die Veröffentlichung kann nach dem ersten Lauf einige Minuten benötigen.
+
+Hinweis: GitHub Pages-Websites sind öffentlich erreichbar. Teilnehmerdaten werden in der Web-App lokal im jeweiligen Browser gespeichert und nicht in dieses Repository hochgeladen.
